@@ -14,6 +14,7 @@ class UserCreationSchema(Schema):
     email:str
     plain_pass:str
     phone:str
+    role:int
 
 
 @app.post("signup/")
@@ -47,12 +48,12 @@ def login_user(request,payload:UserLoginSchame):
             print("user info:- ",user_info)
             if user_info:
                 if HashHelper.verify_password(plain_password=payload.password,hashed_password=user_info[3]):
-                    token=AuthHandler.sign_jwt(user_id=user_info[0])
+                    token=AuthHandler.sign_jwt(user_id=user_info[0],role_id=user_info[5])
                     if token:
                         return {"status":True,"access_token":token}
-                    raise {"status":False,"message":"Unable to process the request."}
+                    return {"status":False,"message":"Unable to process the request."}
                 else:
-                    raise {"status":False,"message":"Please check your Credentials!"}     
+                    return {"status":False,"message":"Please check your Credentials!"}     
     except Exception as e:
         return {"status":False,"message":f"Expection {e}"}
 

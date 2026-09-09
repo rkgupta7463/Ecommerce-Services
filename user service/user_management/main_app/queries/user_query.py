@@ -6,10 +6,10 @@ conn = psycopg2.connect(
 )
 
 # Open a cursor to perform database operations
-cur = conn.cursor()
+# cur = conn.cursor()
 
-# Execute a command
-cur.execute("SELECT version();")
+# # Execute a command
+# cur.execute("SELECT version();")
 
 def user_create(data):
     try:
@@ -68,13 +68,15 @@ def get_user_info_by_email(email):
         cur.execute(
             '''
             SELECT
-                user_id,
-                CONCAT(first_name, ' ' ,last_name) as full_name,
-                email,
-                password_hash
-                phone,
-                is_active
+                u.user_id,
+                CONCAT(u.first_name, ' ' ,u.last_name) as full_name,
+                u.email,
+                u.password_hash,
+                u.phone,
+                ur.role_id,
+                u.is_active
             FROM users u
+            join user_roles ur on u.user_id=ur.user_id
             WHERE u.email = %s
             ''',
             (email,)
@@ -92,12 +94,14 @@ def get_user_info_by_id(user_id):
         cur.execute(
             '''
             SELECT
-                user_id,
-                CONCAT(first_name, ' ' ,last_name) as full_name,
-                email,
-                phone,
-                is_active
+                u.user_id,
+                CONCAT(u.first_name, ' ' ,u.last_name) as full_name,
+                u.email,
+                u.phone,
+                ur.role_id,
+                u.is_active
             FROM users u
+            join user_roles ur on u.user_id=ur.user_id
             WHERE u.user_id = %s
             ''',
             (user_id,)
@@ -109,4 +113,25 @@ def get_user_info_by_id(user_id):
     finally:
         cur.close()    
 
-
+def permission_list(user_id,role_id):
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            '''
+            SELECT DISTINCT p.code AS permission_code
+            FROM user_roles ur
+            JOIN role_permissions rp
+                ON rp.role_id = ur.role_id
+            JOIN permissions p
+                ON p.id = rp.permission_id
+            WHERE ur.user_id = %s
+            AND ur.role_id = %s;
+            ''',
+            (user_id,role_id)
+        )
+        row = cur.fetchone()
+        return row 
+    except Exception as e:
+        raise 
+    finally:
+        cur.close() 
