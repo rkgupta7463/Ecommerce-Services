@@ -1,9 +1,11 @@
 import psycopg2
 
 # Connect to your postgres database
-conn = psycopg2.connect(
-    dbname="ecomm_microservice", user="rishu12", password="Rishu@12", host="localhost", port="5432"
-)
+def get_conn():
+    conn = psycopg2.connect(
+        dbname="ecomm_microservice", user="rishu12", password="Rishu@12", host="localhost", port="5432"
+    )
+    return conn
 
 # Open a cursor to perform database operations
 # cur = conn.cursor()
@@ -13,6 +15,7 @@ conn = psycopg2.connect(
 
 def user_create(data):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
@@ -41,6 +44,7 @@ def user_create(data):
 
 def get_emailid(email):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
@@ -64,6 +68,7 @@ def get_emailid(email):
 
 def get_user_info_by_email(email):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
@@ -90,6 +95,7 @@ def get_user_info_by_email(email):
 
 def get_user_info_by_id(user_id):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
@@ -109,12 +115,14 @@ def get_user_info_by_id(user_id):
         row = cur.fetchone()
         return row 
     except Exception as e:
+        print("expection:- ",e)
         raise 
     finally:
         cur.close()    
 
 def permission_list(user_id,role_id):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''

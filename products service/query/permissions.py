@@ -1,12 +1,9 @@
-import psycopg2
-
-# Connect to your postgres database
-conn = psycopg2.connect(
-    dbname="ecomm_microservice", user="rishu12", password="Rishu@12", host="localhost", port="5432"
-)
+from .get_connection import get_conn
+from itertools import chain
 
 def permission_list(user_id,role_id):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
@@ -21,8 +18,9 @@ def permission_list(user_id,role_id):
             ''',
             (user_id,role_id)
         )
-        row = cur.fetchone()
-        return row 
+        row = cur.fetchall()
+        result = list(chain.from_iterable(row))
+        return result   
     except Exception as e:
         raise 
     finally:
