@@ -1,18 +1,21 @@
 import psycopg2
 
 # Connect to your postgres database
-conn = psycopg2.connect(
-    dbname="ecomm_microservice", user="rishu12", password="Rishu@12", host="localhost", port="5432"
-)
+def get_conn():
+    conn = psycopg2.connect(
+        dbname="ecomm_microservice", user="rishu12", password="Rishu@12", host="localhost", port="5432"
+    )
+    return conn
 
 # Open a cursor to perform database operations
-cur = conn.cursor()
+# cur = conn.cursor()
 
-# Execute a command
-cur.execute("SELECT version();")
+# # Execute a command
+# cur.execute("SELECT version();")
 
 def user_create(data):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
@@ -41,6 +44,7 @@ def user_create(data):
 
 def get_emailid(email):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
@@ -64,17 +68,20 @@ def get_emailid(email):
 
 def get_user_info_by_email(email):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
             SELECT
-                user_id,
-                CONCAT(first_name, ' ' ,last_name) as full_name,
-                email,
-                password_hash
-                phone,
-                is_active
+                u.user_id,
+                CONCAT(u.first_name, ' ' ,u.last_name) as full_name,
+                u.email,
+                u.password_hash,
+                u.phone,
+                ur.role_id,
+                u.is_active
             FROM users u
+            join user_roles ur on u.user_id=ur.user_id
             WHERE u.email = %s
             ''',
             (email,)
@@ -88,16 +95,19 @@ def get_user_info_by_email(email):
 
 def get_user_info_by_id(user_id):
     try:
+        conn=get_conn()
         cur = conn.cursor()
         cur.execute(
             '''
             SELECT
-                user_id,
-                CONCAT(first_name, ' ' ,last_name) as full_name,
-                email,
-                phone,
-                is_active
+                u.user_id,
+                CONCAT(u.first_name, ' ' ,u.last_name) as full_name,
+                u.email,
+                u.phone,
+                ur.role_id,
+                u.is_active
             FROM users u
+            join user_roles ur on u.user_id=ur.user_id
             WHERE u.user_id = %s
             ''',
             (user_id,)
@@ -105,8 +115,31 @@ def get_user_info_by_id(user_id):
         row = cur.fetchone()
         return row 
     except Exception as e:
+        print("expection:- ",e)
         raise 
     finally:
         cur.close()    
 
-
+def permission_list(user_id,role_id):
+    try:
+        conn=get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            '''
+            SELECT DISTINCT p.code AS permission_code
+            FROM user_roles ur
+            JOIN role_permissions rp
+                ON rp.role_id = ur.role_id
+            JOIN permissions p
+                ON p.id = rp.permission_id
+            WHERE ur.user_id = %s
+            AND ur.role_id = %s;
+            ''',
+            (user_id,role_id)
+        )
+        row = cur.fetchone()
+        return row 
+    except Exception as e:
+        raise 
+    finally:
+        cur.close() 

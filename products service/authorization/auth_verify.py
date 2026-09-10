@@ -1,6 +1,11 @@
 import jwt
 from decouple import config
 import time
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 JWT_SECRET=config('JWT_SECRET',default='iujhvearfabdfoiciuygiyuvghhjhv251465hjdfbcihig8465')
 JWT_ALGORITHM=config('JWT_ALGORITHM',default='HS256')
@@ -30,19 +35,20 @@ class AuthHandler(object):
             return None
         
 
-from bcrypt import checkpw,hashpw,gensalt
+async def user_detail_verify(token: str = Depends(oauth2_scheme)) -> dict:
+    try:
+        decode_token = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except Exception as e:
+        print("unable to decode the token, error: ", e)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or malformed token"
+        )
 
-class HashHelper(object):
-    @staticmethod
-    def verify_password(plain_password:str,hashed_password:str):
-        if checkpw(plain_password.encode('utf-8'),hashed_password.encode('utf-8')):
-            return True
-        else:
-            return False
-        
-    @staticmethod       
-    def get_password_hash(plain_password:str):
-        return hashpw(
-            plain_password.encode('utf-8'),
-            gensalt()
-        ).decode('utf-8')
+    if decode_token["expires"] >= time.time():
+        return decode_token
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token expired"
+    )
