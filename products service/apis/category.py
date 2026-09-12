@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter,Depends,Body
 from authorization.auth_verify import user_detail_verify
 from query.permissions import permission_list
-from query.category import category_create
+from query.category import *
 from pydantic import Field,BaseModel
 
 # Create an APIRouter for product-related routes
@@ -35,5 +35,33 @@ async def create_product(payload:CategoryCreateSchema,user: dict = Depends(user_
         return {"status":True,"message":f"exception:- {e}","data":[]}
 
 
+
+@router.get('/get')
+async def get_specific_category(cat_id:int,user:dict=Depends(user_detail_verify)):
+    try:
+        user_permission=permission_list(user_id=user['user_id'],role_id=user['role_id'])
+        if 'category.read' in user_permission:
+            data=category_by_id(cat_id=cat_id)
+            return {"status":True,"message":"filtered categories","data":data}
+        else:
+            return {"status":False,"message":"user doesn't have permission to perform this action!","data":[]}
+    except Exception as e:
+        return {"status":False,"message":f"exception:- {e}"}
+
+
+
+@router.get('/filter')
+async def category_filter(query:str,user:dict=Depends(user_detail_verify)):
+    try:
+        user_permission=permission_list(user_id=user['user_id'],role_id=user['role_id'])
+        if 'category.read' in user_permission:
+            data=category_by_filter(query=query)
+            return {"status":True,"message":"filtered categories","data":data}
+        else:
+            return {"status":False,"message":"user doesn't have permission to perform this action!","data":[]}
+    except Exception as e:
+        return {"status":False,"message":f"exception:- {e}"}
+
+    
 
     

@@ -12,7 +12,7 @@ class AuthHandler(object):
         payload={
             "user_id":user_id,
             "role_id":role_id,
-            "expires":time.time()+300
+            "expires":time.time()+1500
         }
 
         token=jwt.encode(payload,JWT_SECRET,algorithm=JWT_ALGORITHM)
