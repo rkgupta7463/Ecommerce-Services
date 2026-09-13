@@ -30,3 +30,75 @@ def product_create(data):
         raise  # or log it and return a structured error, don't swallow it
     finally:
         cur.close()
+
+
+def product_by_id(prod_id):
+    try:
+        conn=get_conn()
+        cur=conn.cursor()
+        cur.execute(
+            '''
+                select p.product_id,p."name" ,p.description ,p.price ,p.discount_price ,p.brand ,p.is_active , p.created_at, 
+                c.category_id ,c."name" ,c.description ,c.parent_category_id 
+                from products p
+                join categories c on p.category_id =c.category_id 
+                where p.product_id =%s and p.is_active ='true';
+
+            ''',
+            (
+                prod_id,
+            )
+        )
+        row=cur.fetchone()
+        print("row:- ",row)
+        return {"id":row[0],"name":row[1],"description":row[2],"price":row[3],"dicounted_price":row[4],"brand":row[5],"isactive":row[6],"created_at":row[7],"category":{
+            "id":row[8],
+            "name":row[9],
+            "description":row[10],
+            "parent_category": row[11] if row[11] is not None else None
+        }}
+    except Exception as e:
+        conn.rollback()
+        raise  # or log it and return a structured error, don't swallow it
+    finally:
+        cur.close()
+
+
+
+def producty_by_filter(query):
+    try:
+        conn=get_conn()
+        cur=conn.cursor()
+        search_pattern=f"%{query}%"
+        cur.execute(
+            '''
+                select p.product_id,p."name" ,p.description ,p.price ,p.discount_price ,p.brand ,p.is_active , p.created_at, 
+                c.category_id ,c."name" ,c.description ,c.parent_category_id 
+                from products p
+                join categories c on p.category_id =c.category_id and c.is_active='true'
+                where (p.name ilike %s or p.description ilike %s or p.brand ilike %s or c.name ilike %s or c.description ilike %s) and p.is_active ='true';
+
+            ''',
+            (
+                search_pattern,
+                search_pattern,
+                search_pattern,
+                search_pattern,
+                search_pattern,
+            )
+        )
+        rows=cur.fetchall()
+        print("row:- ",rows)
+        return [{"id":row[0],"name":row[1],"description":row[2],"price":row[3],"dicounted_price":row[4],"brand":row[5],"isactive":row[6],"created_at":row[7],"category":{
+            "id":row[8],
+            "name":row[9],
+            "description":row[10],
+            "parent_category": row[11] if row[11] is not None else None
+        }} for row in rows]
+    
+    except Exception as e:
+        conn.rollback()
+        raise  # or log it and return a structured error, don't swallow it
+    finally:
+        cur.close()
+

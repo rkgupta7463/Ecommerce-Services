@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter,Depends,Body
 from authorization.auth_verify import user_detail_verify
 from query.permissions import permission_list
-from query.product import product_create
+from query.product import *
 from pydantic import Field,BaseModel
 
 # Create an APIRouter for product-related routes
@@ -40,4 +40,25 @@ async def create_product(payload:ProductCreateSchema,user: dict = Depends(user_d
 
 
 
+
+@router.get('/get')
+async def get_specific_product(prod_id:int):
+    try:
+            data=product_by_id(prod_id=prod_id)
+            return {"status":True,"message":"filtered product","data":data}
+    except Exception as e:
+        return {"status":False,"message":f"exception:- {e}"}
+
+
+
+@router.get('/filter')
+async def product_filter(query:str):
+    try:
+        data=producty_by_filter(query=query)
+        return {"status":True,"message":"filtered products","data":data}
+    except Exception as e:
+        return {"status":False,"message":f"exception:- {e}"}
+
     
+
+        

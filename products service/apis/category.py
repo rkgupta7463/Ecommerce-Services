@@ -37,28 +37,20 @@ async def create_product(payload:CategoryCreateSchema,user: dict = Depends(user_
 
 
 @router.get('/get')
-async def get_specific_category(cat_id:int,user:dict=Depends(user_detail_verify)):
+async def get_specific_category(cat_id:int):
     try:
-        user_permission=permission_list(user_id=user['user_id'],role_id=user['role_id'])
-        if 'category.read' in user_permission:
-            data=category_by_id(cat_id=cat_id)
-            return {"status":True,"message":"filtered categories","data":data}
-        else:
-            return {"status":False,"message":"user doesn't have permission to perform this action!","data":[]}
+        data=category_by_id(cat_id=cat_id)
+        return {"status":True,"message":"filtered categories","data":data}
     except Exception as e:
         return {"status":False,"message":f"exception:- {e}"}
 
 
 
 @router.get('/filter')
-async def category_filter(query:str,user:dict=Depends(user_detail_verify)):
+async def category_filter(query:str):
     try:
-        user_permission=permission_list(user_id=user['user_id'],role_id=user['role_id'])
-        if 'category.read' in user_permission:
-            data=category_by_filter(query=query)
-            return {"status":True,"message":"filtered categories","data":data}
-        else:
-            return {"status":False,"message":"user doesn't have permission to perform this action!","data":[]}
+        data=category_by_filter(query=query)
+        return {"status":True,"message":"filtered categories","data":data}
     except Exception as e:
         return {"status":False,"message":f"exception:- {e}"}
 
