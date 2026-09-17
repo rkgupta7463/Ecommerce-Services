@@ -1,6 +1,7 @@
 from ninja import NinjaAPI,Router,Schema
 from ...utility import *
 from ...queries.user_query import *
+from ninja.throttling import AuthRateThrottle,AnonRateThrottle
 
 app=Router()
 
@@ -58,7 +59,7 @@ def login_user(request,payload:UserLoginSchame):
         return {"status":False,"message":f"Expection {e}"}
 
 
-@app.post("get-user-info/")
+@app.post("get-user-info/",throttle=[AuthRateThrottle("5/m")])
 def get_user_details(request,user_id):
     try:
         user_detail=get_user_info_by_id(user_id=user_id)

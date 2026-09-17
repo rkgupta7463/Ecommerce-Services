@@ -4,6 +4,7 @@ from authorization.auth_verify import user_detail_verify
 from query.permissions import permission_list
 from query.product import *
 from pydantic import Field,BaseModel
+from RateLimit import RateLimiter
 
 # Create an APIRouter for product-related routes
 router = APIRouter(
@@ -52,7 +53,7 @@ async def get_specific_product(prod_id:int):
 
 
 @router.get('/filter')
-async def product_filter(query:str):
+async def product_filter(query:str,data:None= Depends(RateLimiter(times=5,seconds=60))):
     try:
         data=producty_by_filter(query=query)
         return {"status":True,"message":"filtered products","data":data}
