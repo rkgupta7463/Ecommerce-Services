@@ -60,6 +60,35 @@ async def product_filter(query:str,data:None= Depends(RateLimiter(times=5,second
     except Exception as e:
         return {"status":False,"message":f"exception:- {e}"}
 
+
+
+class ProductUpdateSchema(BaseModel):
+    name:str
+    cat_id:int
+    description:str
+    price:int
+    discount_price:int
+    brand:str
+    is_active:bool 
+
+@router.post('/update')
+async def product_update(prod_id:int,payload:ProductUpdateSchema,user:dict=Depends(user_detail_verify)):
+    try:
+        data=payload.dict()
+        print("user_id=user['user_id'],role_id=user['role_id']:- ",user['user_id'],user['role_id'])
+        user_permission=permission_list(user_id=user['user_id'],role_id=user['role_id'])
+        print("user permission:- ",user_permission)
+        if 'product.update' in user_permission:
+            data['product_id']=prod_id
+            data['modified_by']=user['user_id']
+            result=updates_product(data=data)
+            return {"status":True,"message":"Fetched user data!","data":result}
+        else:
+            return {"status":False,"message":"user doesn't have permission to perform this action!","data":[]}
+    except Exception as e:
+        print("e:- ",e)
+        return {"status":True,"message":f"exception:- {e}","data":[]}
+
     
 
         
