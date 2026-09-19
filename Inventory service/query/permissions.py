@@ -15,7 +15,7 @@ def permission_list(user_id):
                 ON p.id = rp.permission_id
             WHERE ur.user_id = %s;
             ''',
-            (user_id)
+            (user_id,)
         )
         row = cur.fetchall()
         result = list(chain.from_iterable(row))
