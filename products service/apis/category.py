@@ -22,7 +22,7 @@ async def create_product(payload:CategoryCreateSchema,user: dict = Depends(user_
     try: 
         data=payload.dict()
 
-        user_permissions=permission_list(user_id=user['user_id'],role_id=user['role_id'])
+        user_permissions=permission_list(user_id=user['user_id'])
         if 'category.create' in user_permissions:
             data['user_id']=user['user_id']
             result=category_create(data=data)

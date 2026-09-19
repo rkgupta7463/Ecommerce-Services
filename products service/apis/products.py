@@ -27,7 +27,7 @@ async def create_product(payload:ProductCreateSchema,user: dict = Depends(user_d
     try: 
         data=payload.dict()
 
-        user_permissions=permission_list(user_id=user['user_id'],role_id=user['role_id'])
+        user_permissions=permission_list(user_id=user['user_id'])
         if 'product.create' in user_permissions:
             data['user_id']=user['user_id']
             result=product_create(data=data)
@@ -76,7 +76,7 @@ async def product_update(prod_id:int,payload:ProductUpdateSchema,user:dict=Depen
     try:
         data=payload.dict()
         print("user_id=user['user_id'],role_id=user['role_id']:- ",user['user_id'],user['role_id'])
-        user_permission=permission_list(user_id=user['user_id'],role_id=user['role_id'])
+        user_permission=permission_list(user_id=user['user_id'])
         print("user permission:- ",user_permission)
         if 'product.update' in user_permission:
             data['product_id']=prod_id

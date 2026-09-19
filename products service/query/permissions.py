@@ -13,8 +13,7 @@ def permission_list(user_id,role_id):
                 ON rp.role_id = ur.role_id
             JOIN permissions p
                 ON p.id = rp.permission_id
-            WHERE ur.user_id = %s
-            AND ur.role_id = %s;
+            WHERE ur.user_id = %s;
             ''',
             (user_id,role_id)
         )

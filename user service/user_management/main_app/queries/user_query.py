@@ -120,7 +120,7 @@ def get_user_info_by_id(user_id):
     finally:
         cur.close()    
 
-def permission_list(user_id,role_id):
+def permission_list(user_id):
     try:
         conn=get_conn()
         cur = conn.cursor()
@@ -132,10 +132,9 @@ def permission_list(user_id,role_id):
                 ON rp.role_id = ur.role_id
             JOIN permissions p
                 ON p.id = rp.permission_id
-            WHERE ur.user_id = %s
-            AND ur.role_id = %s;
+            WHERE ur.user_id = %s;
             ''',
-            (user_id,role_id)
+            (user_id)
         )
         row = cur.fetchone()
         return row 
