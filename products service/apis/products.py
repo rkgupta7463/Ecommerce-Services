@@ -21,6 +21,12 @@ router = APIRouter(
     tags=["Products"]
 )
 
+
+@router.get("/cache/stats")
+def cache_stats():
+    return get_cached_products.cache_info()._asdict()
+
+
 @router.post('/create-template')
 async def create_template():
     try:
