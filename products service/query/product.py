@@ -1,36 +1,102 @@
 from .get_connection import get_conn
 
 def product_create(data):
+    conn = None
+    cur = None
+
     try:
-        conn=get_conn()
-        cur=conn.cursor()
+        conn = get_conn()
+        cur = conn.cursor()
+
+        # 1. Insert product; do nothing if SKU already exists
         cur.execute(
-            '''
-            INSERT INTO products(category_id, name, description, sku, price, discount_price, brand, is_active, created_by,modified_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
-            RETURNING product_id, name
-            ''',
+            """
+            INSERT INTO products (
+                category_id, name, description, sku,
+                price, discount_price, brand, is_active,
+                created_by, modified_by
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (sku) DO NOTHING
+            RETURNING product_id, name, sku
+            """,
             (
-                data['cat_id'],
-                data['name'],
-                data['description'],
-                data['sku'],
-                data['price'],
-                data['discount_price'],
-                data['brand'],
-                data['is_active'],
-                data['user_id'],
-                data['user_id'],
+                data["category_id"],
+                data["name"],
+                data["description"],
+                data["sku"],
+                data["price"],
+                data["discount_price"],
+                data["brand"],
+                data["is_active"],
+                data["user_id"],
+                data["user_id"],
             )
         )
-        row=cur.fetchone()
+
+        product_row = cur.fetchone()
+
+        # If product already exists, retrieve its existing details
+        if product_row is None:
+            cur.execute(
+                """
+                SELECT product_id, name, sku
+                FROM products
+                WHERE sku = %s
+                """,
+                (data["sku"],)
+            )
+            product_row = cur.fetchone()
+
+        product_id, product_name, sku = product_row
+
+        # 2. Create inventory or add to existing quantity
+        cur.execute(
+            """
+            INSERT INTO inventory (
+                prod_sku,
+                quantity,
+                reserved_quantity,
+                created_by,
+                updated_by
+            )
+            VALUES (%s, 1, 0, %s, %s)
+            ON CONFLICT (prod_sku)
+            DO UPDATE SET
+                quantity = inventory.quantity + EXCLUDED.quantity,
+                updated_by = EXCLUDED.updated_by,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING quantity
+            """,
+            (
+                sku,
+                data["user_id"],
+                data["user_id"],
+            )
+        )
+
+        inventory_row = cur.fetchone()
         conn.commit()
-        return {"product_id":row[0],"product name":row[1]}
-    except Exception as e:
-        conn.rollback()
-        raise  # or log it and return a structured error, don't swallow it
+
+        return {
+            "product_id": product_id,
+            "product_name": product_name,
+            "sku": sku,
+            "quantity": inventory_row[0],
+            "message": "Product and inventory processed successfully"
+        }
+
+    except Exception:
+        if conn:
+            conn.rollback()
+        raise
+
     finally:
-        cur.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
 
 
 def product_by_id(prod_id):
@@ -60,7 +126,7 @@ def product_by_id(prod_id):
                 "description":row[10],
                 "parent_category": row[11] if row[11] is not None else None
             },"created_by":row[12],"modified_by":row[13]}
-            
+
             return {"status":True,"message":"filtered product","data":data}
         else:
             return {"status":True,"message":f"product {prod_id} doesn't exist!","data":[]}
@@ -80,7 +146,7 @@ def producty_by_filter(query):
         search_pattern=f"%{query}%"
         cur.execute(
             '''
-                select p.product_id,p."name" ,p.description ,p.price ,p.discount_price ,p.brand ,p.is_active , p.created_at, p.modified_by, 
+                select p.product_id,p."name" ,p.description ,p.price ,p.discount_price ,p.brand ,p.is_active , p.created_at,p.updated_at, p.created_by, p.modified_by, 
                 c.category_id ,c."name" ,c.description ,c.parent_category_id 
                 from products p
                 join categories c on p.category_id =c.category_id and c.is_active='true'
@@ -97,18 +163,48 @@ def producty_by_filter(query):
         )
         rows=cur.fetchall()
         print("row:- ",rows)
-        return [{"id":row[0],"name":row[1],"description":row[2],"price":row[3],"dicounted_price":row[4],"brand":row[5],"isactive":row[6],"created_at":row[7],"category":{
-            "id":row[8],
-            "name":row[9],
-            "description":row[10],
-            "parent_category": row[11] if row[11] is not None else None
-        }, "created_by":row[12],"modified_by":row[13] } for row in rows]
+        return [{"id":row[0],"name":row[1],"description":row[2],"price":row[3],"dicounted_price":row[4],"brand":row[5],"isactive":row[6],"created_at":row[7],"modified_by":row[8], "created_by":row[9] ,"modified_by":row[10] ,"category":{
+            "id":row[11],
+            "name":row[12],
+            "description":row[13],
+            "parent_category": row[14] if row[14] is not None else None
+        } } for row in rows]
     
     except Exception as e:
         conn.rollback()
         raise  # or log it and return a structured error, don't swallow it
     finally:
         cur.close()
+
+def producty_list_query():
+    try:
+        conn=get_conn()
+        cur=conn.cursor()
+        cur.execute(
+            '''
+                select p.product_id,p."name" ,p.description ,p.price ,p.discount_price ,p.brand ,p.is_active , p.created_at,p.updated_at, p.created_by, p.modified_by, c.category_id ,c."name" ,c.description ,c.parent_category_id 
+                from products p
+                join categories c on p.category_id =c.category_id and c.is_active='true'
+                where p.is_active ='true' order by 8 desc;
+
+            '''
+        )
+
+        rows=cur.fetchall()
+        # print("rows: \n",rows)
+        return [{"id":row[0],"name":row[1],"description":row[2],"price":row[3],"dicounted_price":row[4],"brand":row[5],"isactive":row[6],"created_at":row[7],"modified_by":row[8], "created_by":row[9] ,"modified_by":row[10] ,"category":{
+            "id":row[11],
+            "name":row[12],
+            "description":row[13],
+            "parent_category": row[14] if row[14] is not None else None
+        } } for row in rows]
+    
+    except Exception as e:
+        conn.rollback()
+        raise  # or log it and return a structured error, don't swallow it
+    finally:
+        cur.close()
+
 
 
 def updates_product(data):

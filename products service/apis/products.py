@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter,Depends,Body
+from fastapi import APIRouter,Depends,Body,UploadFile,File,BackgroundTasks,Query
 from authorization.auth_verify import user_detail_verify
 from query.permissions import permission_list
 from query.product import *
@@ -10,6 +10,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.worksheet.datavalidation import DataValidation
 from io import BytesIO
+from tasks.product_processing import product_bulk_creation
+
 
 # Create an APIRouter for product-related routes
 router = APIRouter(
@@ -32,6 +34,7 @@ async def create_template():
             "price",
             "discount_price",
             "brand",
+            "is_active"
         ]
         worksheet.append(headers)
         # Style the header row
@@ -52,6 +55,15 @@ async def create_template():
         worksheet.add_data_validation(price_validation)
         price_validation.add("E2:E1000")
         price_validation.add("F2:F1000")
+
+        # Add basic validation for is_active
+        is_active_validation = DataValidation(
+            type="list",                  # Excel handles True/False as a list dropdown
+            formula1='"TRUE,FALSE"',       # Must be wrapped in double quotes inside the string
+            allow_blank=False,
+        )
+        worksheet.add_data_validation(is_active_validation)
+        is_active_validation.add("H2:H1000")
 
         # Adjust column widths
         for column in worksheet.columns:
@@ -83,6 +95,20 @@ async def create_template():
 
     except Exception as e:
         return str(e)
+
+@router.post('/bulk-create')
+async def bulk_creation_product(background:BackgroundTasks,file:UploadFile=File(...),user: dict = Depends(user_detail_verify)):  
+    try: 
+        user_permissions=permission_list(user_id=user['user_id'])
+        if 'product.create' in user_permissions:
+            background.add_task(product_bulk_creation,file,user["user_id"])  
+            return {"status":True,"message":"file is getting process, once done will inform over the email!","data":[]}
+        else:
+            return {"status":False,"message":"user doesn't have permission to perform this action!","data":[]}
+
+    except Exception as e:
+        print("e:- ",e)
+        return {"status":True,"message":f"exception:- {e}","data":[]}
 
 
 
@@ -127,10 +153,22 @@ async def get_specific_product(prod_id:int,data:None= Depends(RateLimiter(times=
 
 
 @router.get('/filter')
-async def product_filter(query:str,data:None= Depends(RateLimiter(times=5,seconds=60))):
+async def product_filter(query:str,data:None= Depends(RateLimiter(times=5,seconds=60)),offset:int=Query(default=0,ge=0),limit:int=Query(default=10,le=100,gt=10)):
     try:
         data=producty_by_filter(query=query)
+        data=data[offset:offset+limit]
         return {"status":True,"message":"filtered products","data":data}
+    except Exception as e:
+        return {"status":False,"message":f"exception:- {e}"}
+
+@router.get('/list')
+async def product_limit(data:None= Depends(RateLimiter(times=5,seconds=60)),offset:int=Query(default=0,ge=0),limit:int=Query(default=10,le=1000,gt=0)):
+    try:
+        data=producty_list_query()
+        total_counts=len(data)
+        data=data[offset:offset+limit]
+
+        return {"status":True,"total_count":total_counts,"message":"filtered products","data":data}
     except Exception as e:
         return {"status":False,"message":f"exception:- {e}"}
 
