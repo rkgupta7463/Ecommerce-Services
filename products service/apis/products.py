@@ -12,6 +12,8 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from io import BytesIO
 from tasks.product_processing import product_bulk_creation
 
+from functools import lru_cache
+
 
 # Create an APIRouter for product-related routes
 router = APIRouter(
@@ -161,10 +163,15 @@ async def product_filter(query:str,data:None= Depends(RateLimiter(times=5,second
     except Exception as e:
         return {"status":False,"message":f"exception:- {e}"}
 
+# maxsize=1 means one cached result for this function.
+@lru_cache(maxsize=1)
+def get_cached_products():
+    return producty_list_query()
+
 @router.get('/list')
 async def product_limit(data:None= Depends(RateLimiter(times=5,seconds=60)),offset:int=Query(default=0,ge=0),limit:int=Query(default=10,le=1000,gt=0)):
     try:
-        data=producty_list_query()
+        data=get_cached_products()
         total_counts=len(data)
         data=data[offset:offset+limit]
 
