@@ -43,10 +43,10 @@ async def create_product(payload:ProductCreateSchema,user: dict = Depends(user_d
 
 
 @router.get('/get')
-async def get_specific_product(prod_id:int):
+async def get_specific_product(prod_id:int,data:None= Depends(RateLimiter(times=5,seconds=60))):
     try:
             data=product_by_id(prod_id=prod_id)
-            return {"status":True,"message":"filtered product","data":data}
+            return data
     except Exception as e:
         return {"status":False,"message":f"exception:- {e}"}
 
@@ -75,9 +75,13 @@ class ProductUpdateSchema(BaseModel):
 async def product_update(prod_id:int,payload:ProductUpdateSchema,user:dict=Depends(user_detail_verify)):
     try:
         data=payload.dict()
+        
         print("user_id=user['user_id'],role_id=user['role_id']:- ",user['user_id'],user['role_id'])
+
         user_permission=permission_list(user_id=user['user_id'])
+
         print("user permission:- ",user_permission)
+        
         if 'product.update' in user_permission:
             data['product_id']=prod_id
             data['modified_by']=user['user_id']

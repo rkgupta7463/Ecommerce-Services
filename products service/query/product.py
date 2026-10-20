@@ -52,12 +52,19 @@ def product_by_id(prod_id):
         )
         row=cur.fetchone()
         print("row:- ",row)
-        return {"id":row[0],"name":row[1],"description":row[2],"price":row[3],"dicounted_price":row[4],"brand":row[5],"isactive":row[6],"created_at":row[7],"category":{
-            "id":row[8],
-            "name":row[9],
-            "description":row[10],
-            "parent_category": row[11] if row[11] is not None else None
-        },"created_by":row[12],"modified_by":row[13]}
+
+        if row is not None:
+            data ={"id":row[0],"name":row[1],"description":row[2],"price":row[3],"dicounted_price":row[4],"brand":row[5],"isactive":row[6],"created_at":row[7],"category":{
+                "id":row[8],
+                "name":row[9],
+                "description":row[10],
+                "parent_category": row[11] if row[11] is not None else None
+            },"created_by":row[12],"modified_by":row[13]}
+            
+            return {"status":True,"message":"filtered product","data":data}
+        else:
+            return {"status":True,"message":f"product {prod_id} doesn't exist!","data":[]}
+        
     except Exception as e:
         conn.rollback()
         raise  # or log it and return a structured error, don't swallow it
