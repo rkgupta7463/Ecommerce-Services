@@ -141,7 +141,7 @@ async def category_filter(query:str):
     
 
 @router.get('/list')
-async def category_filter(offset:int=Query(default=0,ge=0),limit:int=Query(default=10,le=1000,gt=0)):
+async def category_listing(offset:int=Query(default=0,ge=0),limit:int=Query(default=10,le=1000,gt=0)):
     try:
         data=category_lists()
         total_Count=len(data)
